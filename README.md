@@ -1,6 +1,18 @@
-# claude-code-setup
+<div align="center">
 
-**A production-hardened Claude Code configuration built on three compounding principles: Skills, Agents, and Token Discipline.**
+# Claude Code — Power User Setup
+
+**Skills-first development · 144-agent dispatch · Token budget discipline**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Power%20User-blueviolet)](https://claude.ai/code)
+[![Skills](https://img.shields.io/badge/Skills-29%20installed-green)](skills/README.md)
+[![Agents](https://img.shields.io/badge/Agents-144%20available-blue)](agents/README.md)
+[![Tokens Saved](https://img.shields.io/badge/Tokens%20saved-~1%2C800%2Fsession-orange)](docs/PILLAR-3-TOKEN-OPTIMIZATION.md)
+
+</div>
+
+---
 
 Most Claude Code setups look like this: a blank `CLAUDE.md` that says "be helpful", no memory strategy, no skill system, watching Claude reinvent the wheel every session while burning through tokens.
 
@@ -8,89 +20,118 @@ This is not that.
 
 ---
 
+## At a Glance
+
+| What | Numbers |
+|------|---------|
+| Global config file (`CLAUDE.md`) | 215 lines — audited down from 388 |
+| Token savings vs. naïve config | ~1,800 tokens every cold-start session |
+| Skills installed | 29 (14 Superpowers + 15 community) |
+| Domain agents available | 144 |
+| Token optimization mechanisms | 5 working in parallel |
+| Local model routing tasks | 4 task types run free via Ollama |
+| Context autocompact threshold | 50% (vs. default ~80%) |
+
+---
+
 ## The Three Pillars
 
-### 1. Skills-First Development
+### Pillar 1 — Skills-First Development
 
-Before Claude writes a single line of code, it checks a library of 30+ skills. Planning a feature? It invokes `brainstorming` + `writing-plans`. Debugging a race condition? `systematic-debugging`. Shipping a PR? `requesting-code-review` then `verification-before-completion`.
+Before Claude writes a single line of code, it checks a library of 29 skills. Planning a feature? It invokes `brainstorming` + `writing-plans`. Debugging a race condition? `systematic-debugging`. Shipping a PR? `requesting-code-review` → `verification-before-completion`.
 
-The difference between "Claude as autocomplete" and "Claude as senior engineer" is that the second one follows a methodology every time — not just when you remember to ask for it. The `CLAUDE.md` in this repo **mandates** skill invocation before any implementation action.
+The difference between *Claude as autocomplete* and *Claude as senior engineer* is that the second follows a methodology every time — not just when you remember to ask. The `CLAUDE.md` **mandates** skill invocation before any implementation action.
 
-**14 Superpowers skills** (official plugin, auto-triggers):
+**14 Superpowers skills** (official plugin, auto-triggers at the right moment):
 
-| Skill | Category | When It Fires |
-|-------|----------|--------------|
-| `brainstorming` | Design | Before any feature work or new component |
-| `writing-plans` | Planning | After brainstorming, before coding |
-| `test-driven-development` | Testing | Before writing implementation code |
-| `systematic-debugging` | Debugging | When diagnosing bugs or failures |
-| `verification-before-completion` | Quality | Before marking any task done |
-| `requesting-code-review` | Review | Before submitting a PR |
-| `receiving-code-review` | Review | When responding to review feedback |
-| `dispatching-parallel-agents` | Coordination | When work can be parallelized |
-| `executing-plans` | Execution | When running a multi-step plan |
-| `subagent-driven-development` | Execution | Fast iteration with two-stage review |
-| `using-git-worktrees` | Isolation | Before feature work needing isolation |
-| `finishing-a-development-branch` | Shipping | Before merging a branch |
-| `writing-skills` | Meta | When creating new skills |
-| `using-superpowers` | Meta | Bootstrap at session start |
+| Skill | When It Fires |
+|-------|--------------|
+| `brainstorming` | Before any feature work |
+| `writing-plans` | After brainstorming, before coding |
+| `test-driven-development` | Before writing implementation |
+| `systematic-debugging` | When diagnosing failures |
+| `verification-before-completion` | Before marking anything done |
+| `requesting-code-review` | Before submitting a PR |
+| `dispatching-parallel-agents` | When work can be parallelized |
+| `finishing-a-development-branch` | Before merging a branch |
+| + 6 more | — |
 
-**15 community skills** installed on top — see [skills/README.md](skills/README.md).
+**15 community skills** on top — see [skills/README.md](skills/README.md).
+
+> Full deep-dive: [docs/PILLAR-1-SKILLS.md](docs/PILLAR-1-SKILLS.md)
 
 ---
 
-### 2. Agent Dispatch System
+### Pillar 2 — 144-Agent Dispatch System
 
-144 domain-specific agents available on-demand via the [awesome-claude-code-subagents](https://github.com/daveshap/awesome-claude-code-subagents) catalog. When a task needs depth, Claude spawns the right specialist rather than guessing with a generalist.
+Domain-specific agents from the [awesome-claude-code-subagents](https://github.com/anthropics/claude-code/discussions) catalog. When a task needs depth, Claude spawns the right specialist instead of guessing with a generalist.
 
-Categories: core development, language specialists (Go, Rust, Python, TypeScript, C++, Swift, Kotlin, Elixir...), infrastructure, quality/security, data/AI, business/product, research/analysis.
+The `postgres-pro` agent has a prompt built entirely around query planning, index strategies, and execution plans. It is materially better than a generalist Claude at that task.
 
-**The rule in `CLAUDE.md`**: before writing >200 lines in a domain with a matching agent, spawn that agent. The `react-specialist` knows React better than a generalist Claude ever will.
+**The rule**: before writing >200 lines in a domain with a matching agent, spawn that agent.
 
-See [agents/README.md](agents/README.md) for install instructions.
+**Most-used:**
+
+```
+react-specialist   golang-pro        rust-engineer      python-pro
+typescript-pro     postgres-pro      devops-engineer    kubernetes-specialist
+security-engineer  debugger          code-reviewer      architect-reviewer
+nextjs-developer   data-engineer     ml-engineer        research-analyst
+```
+
+> Full catalog + install: [agents/README.md](agents/README.md)
 
 ---
 
-### 3. Token Budget Discipline
+### Pillar 3 — Token Budget Discipline
 
-Five mechanisms working together to extend effective context windows and reduce API costs:
+Five mechanisms working in parallel to extend effective context and cut API costs:
 
-| Mechanism | What It Does | Where |
-|-----------|-------------|-------|
-| **Local model routing** | Structured extraction (JSON, deps, commits, similarity) → Ollama locally | `CLAUDE.md` + `settings.json` |
-| **AUTOCOMPACT at 50%** | Compacts context at 50% capacity instead of ~80% | `settings.json` env |
-| **Output truncation hook** | Truncates Bash outputs >200 lines to 50+50 | `hooks/filter-output.sh` |
+| Mechanism | Impact | Config Location |
+|-----------|--------|----------------|
+| **Local model routing** | 4 task types → free Ollama, 0 Claude tokens | `CLAUDE.md` routing table |
+| **AUTOCOMPACT at 50%** | Compacts at 50% capacity vs. ~80% default | `settings.json` env |
+| **Output truncation hook** | Bash outputs >200 lines → 50+50 | `hooks/filter-output.sh` |
 | **Documentation-first lookup** | 5-step info order before reading code | `CLAUDE.md` |
-| **Disabled telemetry** | No background pings | `settings.json` env |
+| **Disabled telemetry** | No background token pings | `settings.json` env |
 
-**Local model routing table** (from `CLAUDE.md`):
+**Local model routing table** — these tasks run free via Ollama instead of Claude:
 
 ```
-Task                                    → Tool
-────────────────────────────────────────────────────────────────
-Extract structured data / JSON          → mcp__ollama__generate (json)
-Parse requirements.txt / pyproject.toml → mcp__ollama__generate (json)
-Generate commit message from git diff   → mcp__ollama__generate (code)
-Semantic similarity / deduplication     → mcp__ollama__embed → cosine sim
+Task                                     → Tool
+─────────────────────────────────────────────────────────────────
+Extract structured data / JSON from text → mcp__ollama__generate(json)
+Parse requirements.txt / pyproject.toml  → mcp__ollama__generate(json)
+Generate commit message from git diff    → mcp__ollama__generate(code)
+Semantic similarity / deduplication      → mcp__ollama__embed → cosine sim
 ```
 
-These tasks are deterministic and don't need Claude's reasoning. Running them locally is free, instant, and just as accurate.
+> Full breakdown: [docs/PILLAR-3-TOKEN-OPTIMIZATION.md](docs/PILLAR-3-TOKEN-OPTIMIZATION.md)
 
 ---
 
-## What Changes After Setup
+## Before and After
 
-**Before**: `"Write me a React auth component"` → Claude writes code immediately.  
-**After**: Claude invokes `brainstorming`, asks 3 clarifying questions, invokes `writing-plans`, then codes.
+```
+BEFORE                                    AFTER
+──────────────────────────────────────    ──────────────────────────────────────
+"Write a React auth component"            Claude invokes brainstorming,
+→ Claude writes code immediately          asks 3 clarifying questions,
+                                          invokes writing-plans, then codes.
 
-**Before**: `"Debug this error"` → Claude reads the stack trace and guesses.  
-**After**: Claude invokes `systematic-debugging`, follows a structured 4-phase fault isolation process.
+"Debug this error"                        Claude invokes systematic-debugging,
+→ Claude reads the stack and guesses      follows 4-phase fault isolation,
+                                          identifies root cause systematically.
 
-**Before**: Context window fills with 500 lines of `npm install` output.  
-**After**: `filter-output.sh` truncates it to 50+50 lines. Ollama handles the JSON parsing locally.
+Context fills with 500 lines of           filter-output.sh truncates to 50+50.
+npm install output.                       Ollama handles JSON parsing locally.
 
-**Before**: Claude re-reads the same architecture docs every session.  
-**After**: `MEMORY.md` + 5-step lookup order means Claude knows where things are without reading files twice.
+Claude re-reads the same architecture     MEMORY.md + 5-step lookup order.
+docs every single session.                Claude knows where things are.
+
+CLAUDE.md: 388 lines, ~4,200 tokens       CLAUDE.md: 215 lines, ~2,400 tokens
+loaded on every cold start.               ~1,800 tokens saved every session.
+```
 
 ---
 
@@ -98,16 +139,16 @@ These tasks are deterministic and don't need Claude's reasoning. Running them lo
 
 | File | Purpose |
 |------|---------|
-| [`CLAUDE.md`](CLAUDE.md) | 18KB global directives — the single most impactful file |
-| [`settings.json`](settings.json) | Annotated config with token optimization, permissions, hooks |
+| [`CLAUDE.md`](CLAUDE.md) | Global behavioral contract — the most impactful file |
+| [`settings.json`](settings.json) | Annotated config: token vars, permissions, hooks, MCP servers |
 | [`hooks/filter-output.sh`](hooks/filter-output.sh) | PostToolUse hook: truncates verbose Bash output |
 | [`skills/README.md`](skills/README.md) | 15 community skills with install commands |
-| [`agents/README.md`](agents/README.md) | 144 agents catalog — install instructions |
+| [`agents/README.md`](agents/README.md) | 144 agents catalog + install instructions |
 | [`docs/QUICK-START.md`](docs/QUICK-START.md) | 5-minute setup with exact commands |
 | [`docs/PILLAR-1-SKILLS.md`](docs/PILLAR-1-SKILLS.md) | Skills system deep dive |
 | [`docs/PILLAR-2-AGENTS.md`](docs/PILLAR-2-AGENTS.md) | Agent dispatch system guide |
 | [`docs/PILLAR-3-TOKEN-OPTIMIZATION.md`](docs/PILLAR-3-TOKEN-OPTIMIZATION.md) | All 5 token mechanisms explained |
-| [`docs/CLAUDE-MD-GUIDE.md`](docs/CLAUDE-MD-GUIDE.md) | How to read and customize `CLAUDE.md` |
+| [`docs/CLAUDE-MD-GUIDE.md`](docs/CLAUDE-MD-GUIDE.md) | Section-by-section walkthrough of `CLAUDE.md` |
 | [`docs/SETTINGS-GUIDE.md`](docs/SETTINGS-GUIDE.md) | Every `settings.json` field explained |
 | [`docs/MCP-SETUP.md`](docs/MCP-SETUP.md) | Ollama local model setup guide |
 
@@ -118,58 +159,53 @@ These tasks are deterministic and don't need Claude's reasoning. Running them lo
 > Full guide: [docs/QUICK-START.md](docs/QUICK-START.md)
 
 ```bash
-# 1. Copy CLAUDE.md to your global Claude Code config
+# 1. Back up and replace CLAUDE.md
+[ -f ~/.claude/CLAUDE.md ] && cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.backup
 cp CLAUDE.md ~/.claude/CLAUDE.md
 
-# 2. Merge settings.json (update paths to YOUR_HOME first)
-# Review and manually merge settings.json into ~/.claude/settings.json
-# Or copy it directly if you don't have an existing config:
-cp settings.json ~/.claude/settings.json
-
-# 3. Install the output truncation hook
+# 2. Install the output truncation hook
 mkdir -p ~/.claude/hooks
 cp hooks/filter-output.sh ~/.claude/hooks/filter-output.sh
 chmod +x ~/.claude/hooks/filter-output.sh
 
-# 4. Update the hook path in settings.json
-sed -i '' 's|/YOUR/HOME|'"$HOME"'|g' ~/.claude/settings.json
+# 3. Merge settings.json into ~/.claude/settings.json
+# Review and merge manually, or copy directly if starting fresh:
+cp settings.json ~/.claude/settings.json
+sed -i '' "s|/YOUR/HOME|$HOME|g" ~/.claude/settings.json
 
-# 5. Install Superpowers plugin (in Claude Code)
+# 4. Install Superpowers plugin (inside Claude Code)
 # /plugin install superpowers@claude-plugins-official
 
-# 6. (Optional) Install agents catalog
-# See agents/README.md
-
-# 7. (Optional) Set up Ollama for local model routing
-# See docs/MCP-SETUP.md
+# 5. (Optional) Install community skills — see skills/README.md
+# (Optional) Install 144-agent catalog — see agents/README.md
+# (Optional) Set up Ollama local routing — see docs/MCP-SETUP.md
 ```
 
 ---
 
-## The CLAUDE.md: What Makes It Different
+## What Makes the CLAUDE.md Different
 
-The `CLAUDE.md` is the most important file here. It's not a style guide — it's a behavioral contract. Key sections:
+It's not a style guide — it's a **behavioral contract**. Key sections:
 
-- **Local Model Routing** — mandatory routing table for token-heavy deterministic tasks
-- **Phase-Driven Development** — for multi-phase projects: one phase doc, never start phase N+1 before N is verified
-- **Skills & Agents First Strategy** — priority order: skills → agents → MCP servers → manual implementation
-- **Information Lookup Strategy** — 5-step order before reading code (`MEMORY.md` → docs → config → types → implementation)
-- **Memory & Learning Consolidation** — when and what to write to `MEMORY.md` after each session
-- **Verification & Trust** — AI-generated code can look convincing even when wrong. Every significant change gets traced.
+- **Local Model Routing** — mandatory routing table: Ollama handles deterministic tasks, Claude handles judgment
+- **Skills & Agents First** — priority order before writing any code: skills → agents → MCP → implement manually
+- **Information Lookup Order** — 5-step order before reading code files (MEMORY.md → docs → config → types → implementation)
+- **Phase-Driven Development** — one phase doc per milestone, never start phase N+1 before N is verified
+- **Verification & Trust** — AI-generated code looks convincing even when wrong; every significant change gets traced
 
-See [docs/CLAUDE-MD-GUIDE.md](docs/CLAUDE-MD-GUIDE.md) for a full section-by-section walkthrough.
+> See [docs/CLAUDE-MD-GUIDE.md](docs/CLAUDE-MD-GUIDE.md) for a section-by-section walkthrough.
 
 ---
 
 ## Customization
 
-**Keep for any project**: core directives, verification framework, information lookup strategy, skills & agents strategy.
+**Keep for any project**: core directives, verification discipline, information lookup order, skills & agents strategy.
 
-**Customize for your stack**: tech stack preferences (TypeScript/React/Python sections), linting tools, directory conventions.
+**Customize for your stack**: tech preferences (TypeScript/React/Python sections), linting tools, directory conventions.
 
-**Remove for simpler setups**: phase-driven development section (solo projects), Ollama routing (if no local GPU).
+**Remove for simpler setups**: Ollama routing (no local GPU), phase-driven development (solo projects).
 
-**Add**: project-specific context, your team's conventions, additional MCP server configs.
+**Add**: project-specific context, team conventions, additional MCP server configs, your own skills.
 
 ---
 
