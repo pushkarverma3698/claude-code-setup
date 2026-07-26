@@ -1,27 +1,87 @@
 # Claude Code Global Guidelines
 
-## Local Model Routing (Token Optimization — Verified 2026-05-30)
+## Local Model Routing (Token Optimization — MANDATORY)
 
-**MANDATORY**: For the tasks below, ALWAYS call the local Ollama MCP tool FIRST. Do not use Claude reasoning for these — the local model output is deterministic and production-verified.
+**⚠️ CRITICAL**: For the tasks below, ALWAYS call the local Ollama MCP tool FIRST. This saves 1000s of tokens per session. Do NOT skip local model checks to use Claude reasoning — the local model output is deterministic, production-verified, and **free (zero token cost)**.
 
-| Task | Tool | When to use |
-|------|------|-------------|
-| Extract structured data / JSON from text | `mcp__ollama__generate(model_type="json", ...)` | Any time you need to parse config files, diffs, requirements, or unstructured text into JSON |
-| Parse dependencies from requirements.txt / pyproject.toml | `mcp__ollama__generate(model_type="json", ...)` | Always — 100% accurate on both formats |
-| Generate a commit message from a git diff | `mcp__ollama__generate(model_type="code", ...)` | Before every commit — use conventional format prompt |
-| Semantic similarity check / deduplication | `mcp__ollama__embed(text=...)` → cosine similarity | When checking if two strings/tasks are the same concept |
+**Configured models:**
+- `model_type="json"` → qwen2.5:7b (structured data extraction)
+- `model_type="code"` → qwen2.5-coder:7b (code generation, commit messages)
+- `model_type="fast"` → qwen2.5:7b (general-purpose)
+- `embed` → nomic-embed-text (semantic similarity)
 
-**Do NOT use local models for**: bug scanning, architecture review, cross-file reasoning, anything requiring nuanced judgment. Escalate those to Claude immediately.
+**ENFORCEMENT (OPERATIONAL RULE)**: Before EVERY Claude response involving the tasks below, check if the task matches one of these categories. If it does, **call the Ollama MCP tool FIRST — this is NOT optional**. Do not rationalize or skip this step. If you encounter a prompt matching any of these task types, you MUST invoke Ollama before using Claude reasoning. The founder's token budget depends on this.
 
-**If local tool returns an error**: fall back to Claude reasoning silently — do not ask the user.
+| Task | Tool Call | Examples | Token Savings |
+|------|-----------|----------|----------------|
+| Extract/parse JSON from unstructured text | `mcp__ollama__generate(model_type="code", prompt="Extract X from Y...")` | Config files, diffs, requirements, API responses, error logs | ~500-1000 tokens saved |
+| Parse Python/Node dependencies | `mcp__ollama__generate(model_type="code", prompt="Parse dependencies from...")` | requirements.txt, package.json, pyproject.toml, Gemfile (100% accuracy verified) | ~300-500 tokens saved |
+| Generate commit messages from diffs | `mcp__ollama__generate(model_type="code", prompt="Generate conventional commit from: git diff...")` | Before EVERY git commit — required workflow | ~200-400 tokens saved per commit |
+| Semantic similarity / deduplication | `mcp__ollama__embed(text=...)` then cosine similarity | Check if two tasks/strings are equivalent, detect duplicates | ~100-300 tokens saved |
+
+**NEVER use local models for**: Bug scanning, architecture review, cross-file reasoning, design decisions, anything requiring nuanced judgment. Escalate those to Claude immediately.
+
+**Error handling**: If local tool returns an error, fall back to Claude reasoning silently — do not ask the user.
+
+**Session-wide impact**: Proper local model usage = 5-10% reduction in Claude token consumption per session.
+
+---
+
+## Cost Control — Zero Paid API Calls During Development (NON-NEGOTIABLE)
+
+Every live API call to Gemini or OpenRouter costs real money. Development iterations must be **zero-cost**. This is a hard rule, not a preference.
+
+### The Three Zones
+
+| Zone | What runs | Allowed cost |
+|------|-----------|-------------|
+| **Dev loop** (write → test → fix) | `pnpm test` (mocked LLM) + Ollama local models | **$0** |
+| **Integration check** (pre-PR) | Free-tier model via OpenRouter | **$0** |
+| **Live verification** (PR-ready only) | Real Gemini / MTProto QA | Minimal, once per PR |
+
+### Enforcement Rules
+
+1. **`pnpm test` must be $0.** If any unit or integration test makes a real LLM API call, it is a bug. Tests use mocks. No exceptions.
+2. **Never run probe scripts iteratively.** `scripts/probe-*.ts` and `scripts/e2e-telegram-qa.ts` cost Gemini tokens. If something isn't working, write a failing unit test first, fix it, then run the probe ONCE to verify.
+3. **Use free OpenRouter models for any integration run during development.** Set `AGENT_MODEL=openrouter:google/gemini-2.5-flash-preview-05-20:free` (or `openrouter:deepseek/deepseek-r1:free` as fallback). Never set `AGENT_MODEL=google-genai:gemini-2.5-flash` during dev iterations.
+4. **`pnpm eval` is a milestone gate, not a debugging tool.** Run it once when the feature is complete. Not once per attempt.
+5. **MTProto / live Telegram QA** happens exactly once: when all unit tests are green, lint is clean, and you're about to push the PR. Not before.
+6. **If a bug requires a live call to reproduce**, write a unit test that captures the failure first. The live call is only to confirm the fix — after the test is green.
+7. **Ollama is always free.** Use it aggressively for anything in the local model routing table above.
+
+### Free Tier Model Reference
+
+```
+# Development / integration testing (free)
+AGENT_MODEL=openrouter:google/gemini-2.5-flash-preview-05-20:free
+AGENT_FALLBACK_MODELS=openrouter:deepseek/deepseek-r1:free,openrouter:meta-llama/llama-3.3-70b-instruct:free
+
+# Production (paid, only on VPS)
+AGENT_MODEL=openrouter:google/gemini-2.5-flash-preview-05-20
+```
+
+Free tier limits (OpenRouter): 50 RPD per model. Enough for milestone verification, not for iterative testing.
 
 ---
 
 ## Core Directives
+*   **Truth Over Agreement** (⚠️ NON-NEGOTIABLE): Never optimize for making the user feel good. Do not agree, praise, or validate a claim/plan/code just because it was proposed by the user. If something is wrong, risky, inefficient, or based on a false premise, say so directly and explain why — even if it contradicts what the user wants to hear. Do not soften technical assessments with unnecessary hedging or flattery. Push back when warranted; correctness and honesty outrank agreeableness.
+*   **Local Models FIRST** (⚠️ NON-NEGOTIABLE): For JSON extraction, dependency parsing, commit messages, and semantic similarity — ALWAYS call Ollama MCP before Claude. This is not optional. See [Local Model Routing](#local-model-routing-token-optimization--mandatory) section.
 *   **Token Optimization**: Use concise, dense responses. Do not explain basic concepts unless asked. Write modular, DRY code. Assume prior work context via MEMORY.md and project docs.
 *   **Plan Mode**: Before massive multi-file changes or architectural refactors, use Plan Mode. Wait for approval.
 *   **Documentation-First**: Consult MEMORY.md and project docs BEFORE exploring codebase. Reduces token waste on rediscovery.
 *   **Simplicity Over Cleverness**: Before adopting a pattern, library, or abstraction, ask: Does this solve an *actual* problem (not hypothetical)? Is the simpler solution sufficient? If uncertain, choose simple.
+*   **Specialist Agents for Reliability** (⚠️ NON-NEGOTIABLE): For any domain-specific work (code review, architecture, testing, debugging, refactoring, security analysis), ALWAYS delegate to the respective specialized agent. Do NOT attempt inline reasoning for these tasks. Reliability comes from specialization, not generalist attempts. Examples: `code-reviewer` for code quality, `architect` for system design, `tdd-guide` for test-driven development, `security-reviewer` for security vulnerabilities, `build-error-resolver` for compilation failures. Inline reasoning on these topics produces worse results and higher error rates.
+
+---
+
+## LLM Coding Discipline (Karpathy Guidelines)
+
+See also the `karpathy-guidelines` skill.
+
+*   **Think Before Coding**: State assumptions explicitly before implementing. If multiple interpretations exist, present them — don't silently pick one. If a simpler approach exists, say so and push back when warranted. If something is unclear, stop and name what's confusing rather than guessing.
+*   **Surgical Changes Discipline**: When editing existing code, don't "improve" adjacent code, comments, or formatting, and don't refactor things that aren't broken — match existing style even if you'd do it differently. If you notice unrelated dead code, mention it, don't delete it. Only remove imports/variables/functions that your own change made unused. Every changed line should trace directly to the user's request.
+*   **Goal-Driven Execution**: Convert vague tasks into verifiable success criteria (e.g., "fix the bug" → "write a test that reproduces it, then make it pass"). For multi-step tasks, state a brief plan with a verify step per item so progress can be checked without constant clarification.
 
 ---
 
@@ -62,60 +122,10 @@ Global defaults + tech stack + coding style. Not project-specific.
 
 ---
 
-## Technology Stack Preferences
+## Local Tools (Ollama + Safari MCP)
 
-### Local Models (Ollama)
-Models: `qwen2.5:7b` (reasoning/code/json), `nomic-embed-text` (embeddings). Configured via MCP at `http://localhost:11434`. See [Local Model Routing](#local-model-routing-token-optimization--verified-2026-05-30) table above for mandatory usage rules. Ensure Ollama is running (`ollama serve`).
-
-### TypeScript / Node.js
-*   Use strict typing. Prefer ES modules (`import/export`). Avoid `any`. Use interfaces over types where possible.
-*   Organize by feature, not layer: `src/features/{feature}/` contains logic, UI, types, tests.
-
-### React
-*   Functional components only. Use hooks. Prefer Tailwind CSS. Keep components small and composable.
-*   Document component APIs in JSDoc (props, examples). Props interfaces in same file or adjacent `types.ts`.
-
-### Python
-*   Use type hints (`def func(a: int) -> str:`). Follow PEP 8. Use `pytest` for testing.
-*   Structure: `src/{feature}/` contains logic; `tests/test_{feature}.py` mirrors structure.
-
-### FastAPI
-*   Use async for I/O endpoints. Pydantic models for validation. Document endpoints with docstrings (auto-generates OpenAPI).
-
-### AI/RAG (LangChain & LangGraph)
-*   Prioritize state management (LangGraph Annotation with reducers).
-*   For RAG: semantic chunking + hybrid search (keyword + semantic).
-*   Prompts: centralized in `prompts/` directory, versioned, templated with jinja2 or f-strings.
-*   Agent flows: define in code, not YAML. Document state transitions in MEMORY.md.
-
-### Vector DBs
-*   Batch embeddings correctly. Use hybrid search. Document schema changes in MEMORY.md.
-
-### FastMCP
-*   Atomic, single-purpose tools. Thorough parameter descriptions. Example: `tools/web_search.ts` + `tools/web_search.test.ts`.
-
-### Browser Automation (Safari MCP)
-*   **ALWAYS use Safari MCP for**: native browser automation, form filling, JavaScript-heavy sites, navigation workflows, document uploads, multi-step interactions.
-*   **Installed**: Safari MCP v2.11.9+ via `npx safari-mcp` (configured in `~/.claude/settings.json`).
-*   **Advantages**: 40-60% less CPU on Apple Silicon vs Chromium, native WebKit, AppleScript integration, persistent sessions.
-*   **Key tools**: 80+ tools including `navigate`, `click`, `type`, `fill_form`, `get_text`, `take_screenshot`, `wait_for_element`, `extract_table`, etc.
-*   **Common workflows**: job applications, web scraping, data entry automation, UI testing.
-*   **Permissions required** (macOS): Screen Recording, Automation (granted once, persistent).
-*   **Limitations**: CAPTCHA-protected sites, aggressive rate-limiting, sites that detect/block automation.
-*   **Best practices**: Add delays between actions, respect robots.txt, test on staging first, document target URL patterns in MEMORY.md.
-
----
-
-## Code Quality & Git
-
-### Commits
-*   Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`.
-*   Keep commits atomic. One concern per commit.
-
-### Linting
-*   TypeScript: ESLint + Prettier (assume configured).
-*   Python: Ruff + Black (assume configured).
-*   Fix linter errors before submitting. Non-negotiable.
+- **Ollama**: `qwen2.5:7b` (code/json/fast), `nomic-embed-text` (embeddings) at `http://localhost:11434`. See Local Model Routing above.
+- **Safari MCP**: ALWAYS prefer for browser automation (form filling, navigation, scraping). 40-60% less CPU than Chromium on Apple Silicon. Requires macOS Screen Recording + Automation permissions (granted once).
 
 ---
 
@@ -140,23 +150,6 @@ Models: `qwen2.5:7b` (reasoning/code/json), `nomic-embed-text` (embeddings). Con
 Update MEMORY.md after completing features, fixing bugs, discovering gotchas, or making architecture decisions. Keep it **dense and scannable** — bullet points, timestamps (`[2026-05-26] Fixed...`), links to source files. If Claude (next session) would waste tokens rediscovering it, it belongs in MEMORY.md.
 
 Use the `consolidate-memory` skill to merge duplicates and prune stale entries every few sessions.
-
----
-
-## Skills & Agents First Strategy
-
-**Before writing code or running manual commands**, evaluate available skills and agents:
-
-1. **Check available skills** — use whenever they match the task intent, even partially
-2. **Check available agents** (144+ installed) — spawn for domain-specific depth (React, Python, DevOps, ML, etc.)
-3. **Check available MCP servers** — MCP tools are always faster than manual implementation
-4. **Implement manually ONLY if** no skill, agent, or MCP covers the task
-
-**When to spawn agents**: task depth exceeds >5 files, domain matches an agent name, or you're about to write >200 lines in a specialized domain.
-
-**Validate agent output**: Run tests, review diffs, trace critical paths. Agent findings are starting points, not conclusions.
-
-**Example**: "Analyze project dependencies for security" → spawn `dependency-manager` agent, not manual package.json grep.
 
 ---
 
@@ -203,3 +196,5 @@ When a workflow playbook or reusable AI prompt is created:
 Use `superpowers:verification-before-completion` before any significant merge or deploy. Don't trust agent summaries — trace logic yourself. Don't auto-merge agent PRs.
 
 **Critical moments**: before production deploy, after any agent modifies core logic, after >10-file refactors, before merging to main.
+
+

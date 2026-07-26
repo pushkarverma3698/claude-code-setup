@@ -1,28 +1,10 @@
 {
-  // ============================================================
-  // TOKEN OPTIMIZATION ENV VARS
-  // ============================================================
   "env": {
-    // Cap extended thinking to 10k tokens. Remove to allow Claude's full
-    // thinking budget (costs more, rarely needed for everyday tasks).
     "MAX_THINKING_TOKENS": "10000",
-
-    // Compact context at 50% capacity instead of the default ~80%.
-    // Keeps room for tool call outputs without mid-task interruption.
-    // Tune: "70" for lighter sessions, "50" is aggressive but effective.
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50",
-
-    // Disable telemetry pings — reduces noise and slightly speeds up responses.
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
   },
-
-  // ============================================================
-  // PERMISSIONS
-  // ============================================================
   "permissions": {
-    // Commands that run without a confirmation prompt.
-    // Pattern: "Bash(command *)" allows that command with any arguments.
-    // Add commands you use constantly here to reduce friction.
     "allow": [
       "Bash(npm run *)",
       "Bash(pnpm *)",
@@ -36,134 +18,148 @@
       "Bash(head *)",
       "Bash(wc *)",
       "Bash(grep *)",
+      "Bash(sed *)",
       "Bash(python3 *)",
       "Bash(node *)",
+      "Bash(npx *)",
       "Bash(docker ps *)",
       "Bash(docker start *)",
+      "Bash(docker exec *)",
       "Bash(which *)",
+      "Bash(ssh *)",
+      "Bash(gh *)",
+      "Bash(tsc *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(chmod *)",
+      "Bash(touch *)",
+      "Bash(mkdir *)",
       "Edit",
       "Read",
       "Write",
       "Glob",
       "Grep",
       "Agent",
-      "Skill"
-      // Uncomment and customize for your MCP servers:
-      // "mcp__github__*",
-      // "mcp__ollama__generate",
-      // "mcp__ollama__embed",
-      // "mcp__ollama__classify",
-      // "mcp__ollama__health"
+      "Skill",
+      "mcp__personal-rag__search_personal_knowledge",
+      "mcp__personal-rag__get_career_overview",
+      "mcp__personal-rag__search_by_doc_type",
+      "mcp__personal-rag__search_wiki",
+      "mcp__filesystem__*",
+      "mcp__github__*",
+      "mcp__turicks-brain__*",
+      "mcp__ollama__generate",
+      "mcp__ollama__embed",
+      "mcp__ollama__classify",
+      "mcp__ollama__health"
     ],
-
-    // These ALWAYS require explicit approval, overriding all other rules.
     "deny": [
-      "Bash(rm -rf *)",  // Never auto-delete recursively
-      "Bash(sudo *)",    // Never auto-elevate privileges
-      "Read(.env)",      // Never auto-read secrets
-      "Read(.env.*)"
+      "Bash(rm -rf *)",
+      "Bash(sudo *)"
     ],
-
-    // "plan" = Claude proposes a plan before acting on multi-step tasks (recommended).
-    // "auto" = Claude acts immediately without planning step.
-    // Use "plan" for production codebases; "auto" for quick experiments.
     "defaultMode": "plan"
   },
-
-  // ============================================================
-  // HOOKS
-  // ============================================================
   "hooks": {
     "PostToolUse": [
       {
-        // Fires after every Bash tool call.
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            // This script truncates outputs >200 lines to first 50 + last 50 lines,
-            // and strips ANSI escape codes. Saves significant input tokens on
-            // verbose commands (npm install, docker logs, test runners, etc.).
-            // Update this path to your actual home directory.
-            "command": "/YOUR/HOME/.claude/hooks/filter-output.sh"
+            "command": "/Users/pushkarverma/.claude/hooks/filter-output.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/pushkarverma/Projects/turicks-brain-rag/scripts/stop-hook.sh"
           }
         ]
       }
     ]
-    // Optional: Add a Stop hook that runs when Claude finishes a session.
-    // Useful for cleanup scripts, memory consolidation, or notifications.
-    // "Stop": [
-    //   {
-    //     "hooks": [
-    //       {
-    //         "type": "command",
-    //         "command": "/YOUR/HOME/scripts/session-end.sh"
-    //       }
-    //     ]
-    //   }
-    // ]
   },
-
-  // ============================================================
-  // MCP SERVERS
-  // ============================================================
   "mcpServers": {
-    // ── LOCAL MODEL ROUTING ──────────────────────────────────────
-    // Routes structured extraction tasks (JSON parsing, commit messages,
-    // semantic similarity) to a local Ollama model instead of Claude API.
-    // Free, instant, and accurate for deterministic tasks.
-    // See docs/PILLAR-3-TOKEN-OPTIMIZATION.md and docs/MCP-SETUP.md.
-    //
-    // Setup: https://ollama.ai + https://github.com/CakeCrusher/ollama-mcp-server
-    // (Update paths below to match your installation)
+    "composio-personal": {
+      "command": "node",
+      "args": ["/Users/pushkarverma/.claude/composio-mcp-entity.mjs"],
+      "env": {
+        "COMPOSIO_API_KEY": "$COMPOSIO_API_KEY",
+        "COMPOSIO_ENTITY_ID": "personal-account",
+        "COMPOSIO_APPS": "INSTAGRAM,LINKEDIN"
+      }
+    },
+    "composio-turicks": {
+      "command": "node",
+      "args": ["/Users/pushkarverma/.claude/composio-mcp-entity.mjs"],
+      "env": {
+        "COMPOSIO_API_KEY": "$COMPOSIO_API_KEY",
+        "COMPOSIO_ENTITY_ID": "turicks-internal",
+        "COMPOSIO_APPS": "LINKEDIN"
+      }
+    },
+    "composio-default": {
+      "command": "node",
+      "args": ["/Users/pushkarverma/.claude/composio-mcp-entity.mjs"],
+      "env": {
+        "COMPOSIO_API_KEY": "$COMPOSIO_API_KEY",
+        "COMPOSIO_ENTITY_ID": "default",
+        "COMPOSIO_APPS": "GMAIL,GOOGLEDRIVE"
+      }
+    },
+    "composio-turicks-work": {
+      "command": "node",
+      "args": ["/Users/pushkarverma/.claude/composio-mcp-entity.mjs"],
+      "env": {
+        "COMPOSIO_API_KEY": "$COMPOSIO_API_KEY",
+        "COMPOSIO_ENTITY_ID": "turicks-work",
+        "COMPOSIO_APPS": "GMAIL,GOOGLEDRIVE"
+      }
+    },
+    "composio-personal-google": {
+      "command": "node",
+      "args": ["/Users/pushkarverma/.claude/composio-mcp-entity.mjs"],
+      "env": {
+        "COMPOSIO_API_KEY": "$COMPOSIO_API_KEY",
+        "COMPOSIO_ENTITY_ID": "personal-google",
+        "COMPOSIO_APPS": "GMAIL"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/pushkarverma/Projects/founderos"]
+    },
     "ollama": {
-      "command": "/path/to/ollama-mcp-server/venv/bin/python3",
-      "args": ["/path/to/ollama-mcp-server/server.py"],
+      "command": "/Users/pushkarverma/Projects/ollama-mcp-server/venv/bin/python3",
+      "args": ["/Users/pushkarverma/Projects/ollama-mcp-server/server.py"],
       "env": {
         "OLLAMA_URL": "http://localhost:11434"
       }
+    },
+    "safari": {
+      "command": "npx",
+      "args": ["safari-mcp"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "$GITHUB_PERSONAL_ACCESS_TOKEN"
+      }
+    },
+    "nano-banana": {
+      "command": "/Users/pushkarverma/.nvm/versions/node/v22.22.1/bin/nano-banana-mcp",
+      "env": {
+        "GEMINI_API_KEY": "$GEMINI_API_KEY"
+      }
     }
-
-    // ── COMPOSIO (optional) ──────────────────────────────────────
-    // Connects Claude to external services (Gmail, LinkedIn, Google Drive,
-    // GitHub, Slack, etc.) via a single MCP server.
-    // Get your API key at: https://composio.dev/dashboard
-    //
-    // "composio": {
-    //   "command": "node",
-    //   "args": ["/path/to/composio-mcp-entity.mjs"],
-    //   "env": {
-    //     "COMPOSIO_API_KEY": "YOUR_COMPOSIO_API_KEY",
-    //     "COMPOSIO_ENTITY_ID": "default",
-    //     "COMPOSIO_APPS": "GMAIL,GOOGLEDRIVE,GITHUB"
-    //   }
-    // }
-
-    // ── GITHUB MCP (optional) ────────────────────────────────────
-    // Direct GitHub API access for repo operations, PR reviews, issue management.
-    // "github": {
-    //   "command": "npx",
-    //   "args": ["-y", "@modelcontextprotocol/server-github"],
-    //   "env": {
-    //     "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_TOKEN"
-    //   }
-    // }
   },
-
-  // ============================================================
-  // PLUGINS
-  // ============================================================
+  "effort": "medium",
+  "alwaysThinkingEnabled": true,
   "enabledPlugins": {
-    // The official Superpowers plugin provides 14 development methodology
-    // skills that auto-trigger at the right moments.
-    // Install with: /plugin install superpowers@claude-plugins-official
-    // Learn more: https://claude.com/plugins/superpowers
     "superpowers@claude-plugins-official": true
-  },
-
-  // Response effort level:
-  // "low"    = faster/cheaper, good for simple tasks
-  // "medium" = balanced (recommended default)
-  // "high"   = deeper reasoning, more expensive
-  "effort": "medium"
+  }
 }
