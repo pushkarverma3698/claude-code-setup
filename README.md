@@ -2,6 +2,8 @@
 
 # Claude Code — Power User Setup
 
+> **Status (2026-10-27):** retired snapshot of a July 2026 setup. The live rules are `~/.agents/AGENTS.md`; `CLAUDE.md` here is a stub, and the old text is at `git show 87e6d63:CLAUDE.md`. The numbers and Ollama routing below describe that snapshot.
+
 **Skills-first development · 144-agent dispatch · Token budget discipline**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
